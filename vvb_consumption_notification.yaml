@@ -1,0 +1,92 @@
+alias: Vaskerom / VVB kostnad
+description: ""
+triggers:
+  - type: power
+    device_id: 2138a364100c57894e3b4c09492c1b0c
+    entity_id: 1173acd30ac665c1859efed7631a8799
+    domain: sensor
+    trigger: device
+    id: effect_above_100W
+    above: 100
+    for:
+      hours: 0
+      minutes: 0
+      seconds: 10
+  - type: power
+    device_id: 2138a364100c57894e3b4c09492c1b0c
+    entity_id: 1173acd30ac665c1859efed7631a8799
+    domain: sensor
+    trigger: device
+    id: effect_below_100W
+    below: 100
+    for:
+      hours: 0
+      minutes: 0
+      seconds: 10
+conditions: []
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id:
+              - effect_above_100W
+        sequence:
+          - metadata: {}
+            data:
+              value: "{{ states('sensor.vaskerom_vvb_summation_delivered')|float }}"
+            target:
+              entity_id: input_number.vaskerom_vvb_start
+            action: input_number.set_value
+          - metadata: {}
+            data:
+              message: Varmtvannsbereder er slått på!
+              title: Hjemme / Varmtvannsbereder
+            action: notify.mobile_app_borgermeister
+      - conditions:
+          - condition: trigger
+            id:
+              - effect_below_100W
+        sequence:
+          - metadata: {}
+            data:
+              value: "{{ states('sensor.vaskerom_vvb_summation_delivered')|float }}"
+            target:
+              entity_id: input_number.vaskerom_vvb_stop
+            action: input_number.set_value
+          - metadata: {}
+            data:
+              message: >
+                Varmtvannsbereder er slått av!
+
+                Strømpris: {{
+                states('sensor.dallonaveien_15a_electricity_price')|float|round(2)
+                }} kr/kWh
+
+                Forbruk: {{ (states('input_number.vaskerom_vvb_stop')|float -
+                states('input_number.vaskerom_vvb_start')|float)|round(2) }} kWh
+
+                Kostnad: {{ ((states('input_number.vaskerom_vvb_stop')|float -
+                states('input_number.vaskerom_vvb_start') |float) *
+                states('sensor.dallonaveien_15a_electricity_price')|float)|round(2)
+                }} kr
+              title: Hjemme / Varmtvannsbereder
+            action: notify.mobile_app_borgermeister
+          - metadata: {}
+            data:
+              message: >
+                Varmtvannsbereder er slått av!
+
+                Strømpris: {{
+                states('sensor.dallonaveien_15a_electricity_price')|float|round(2)
+                }} kr/kWh
+
+                Forbruk: {{ (states('input_number.vaskerom_vvb_stop')|float -
+                states('input_number.vaskerom_vvb_start')|float)|round(2) }} kWh
+
+                Kostnad: {{ ((states('input_number.vaskerom_vvb_stop')|float -
+                states('input_number.vaskerom_vvb_start') |float) *
+                states('sensor.dallonaveien_15a_electricity_price')|float)|round(2)
+                }} kr
+              title: Hjemme / Varmtvannsbereder
+            action: notify.persistent_notification
+mode: single
