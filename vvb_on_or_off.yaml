@@ -1,0 +1,141 @@
+alias: Vaskerom / VVB with price
+description: ""
+triggers:
+  - trigger: state
+    entity_id:
+      - sensor.dallonaveien_15a_electricity_price
+    attribute: price_level
+    to: HIGH
+    id: price_high
+  - trigger: state
+    entity_id:
+      - sensor.dallonaveien_15a_electricity_price
+    attribute: price_level
+    to: LOW
+    id: price_low
+  - trigger: state
+    entity_id:
+      - sensor.dallonaveien_15a_electricity_price
+    attribute: price_level
+    to: NORMAL
+    id: price_normal
+  - trigger: time_pattern
+    hours: "*"
+    id: time_every_hour
+    minutes: "1"
+conditions: []
+actions:
+  - choose:
+      - conditions:
+          - condition: and
+            conditions:
+              - condition: trigger
+                id:
+                  - price_low
+        sequence:
+          - type: turn_on
+            device_id: 2138a364100c57894e3b4c09492c1b0c
+            entity_id: 19f9f39771523196e490d917323dc0ec
+            domain: switch
+          - action: notify.mobile_app_borgermeister
+            metadata: {}
+            data:
+              message: Billig strøm!
+        alias: Turn on water heater when price is LOW
+      - conditions:
+          - condition: and
+            conditions:
+              - condition: trigger
+                id:
+                  - price_normal
+        sequence:
+          - type: turn_on
+            device_id: 2138a364100c57894e3b4c09492c1b0c
+            entity_id: 19f9f39771523196e490d917323dc0ec
+            domain: switch
+          - action: notify.mobile_app_borgermeister
+            metadata: {}
+            data:
+              message: Normal strøm!
+        alias: Turn on water heater when price is NORMAL
+      - conditions:
+          - condition: and
+            conditions:
+              - condition: trigger
+                id:
+                  - time_every_hour
+              - alias: Current price is higher than average price
+                condition: template
+                value_template: >-
+                  {{ states('sensor.dallonaveien_15a_electricity_price') |
+                  float(0) >
+                  state_attr('sensor.dallonaveien_15a_electricity_price',
+                  'avg_price') | float(0) }}
+              - condition: state
+                entity_id: sensor.dallonaveien_15a_electricity_price
+                attribute: price_level
+                state: HIGH
+        sequence:
+          - type: turn_off
+            device_id: 2138a364100c57894e3b4c09492c1b0c
+            entity_id: 19f9f39771523196e490d917323dc0ec
+            domain: switch
+          - action: notify.mobile_app_borgermeister
+            metadata: {}
+            data:
+              message: Dyr strøm!
+          - delay:
+              hours: 12
+              minutes: 0
+              seconds: 0
+              milliseconds: 0
+          - action: notify.mobile_app_borgermeister
+            metadata: {}
+            data:
+              message: >-
+                Dyr strøm over 12 timer. Slår varmtvannsberederen på uavhengig
+                av strømpris!
+          - type: turn_on
+            device_id: 2138a364100c57894e3b4c09492c1b0c
+            entity_id: 19f9f39771523196e490d917323dc0ec
+            domain: switch
+          - delay:
+              hours: 0
+              minutes: 30
+              seconds: 0
+              milliseconds: 0
+          - type: turn_off
+            device_id: 2138a364100c57894e3b4c09492c1b0c
+            entity_id: 19f9f39771523196e490d917323dc0ec
+            domain: switch
+        alias: Turn off water heater when price is HIGH and price higher than average
+      - conditions:
+          - condition: and
+            conditions:
+              - condition: trigger
+                id:
+                  - time_every_hour
+              - alias: Current price is lower or equal than average price
+                condition: template
+                value_template: >-
+                  {{ states('sensor.dallonaveien_15a_electricity_price') |
+                  float(0) <=
+                  state_attr('sensor.dallonaveien_15a_electricity_price',
+                  'avg_price') | float(0) }}
+              - condition: state
+                entity_id: sensor.dallonaveien_15a_electricity_price
+                attribute: price_level
+                state: HIGH
+        sequence:
+          - type: turn_on
+            device_id: 2138a364100c57894e3b4c09492c1b0c
+            entity_id: 19f9f39771523196e490d917323dc0ec
+            domain: switch
+          - action: notify.mobile_app_borgermeister
+            metadata: {}
+            data:
+              message: Dyr strøm, men lavere enn gjennomsnittet!
+        alias: >-
+          Turn on water heater when price is HIGH and price lower or equal than
+          average
+mode: restart
