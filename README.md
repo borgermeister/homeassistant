@@ -1,2 +1,3 @@
-# homeassistant
-Home Assistant automations
+# Home Assistant automations
+
+Collection of Home Assistant automations
